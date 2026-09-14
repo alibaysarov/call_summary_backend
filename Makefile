@@ -15,10 +15,29 @@ dev:
 # внутри server.py (lifespan), поэтому сам код менять не нужно —
 # переключение CPU <-> GPU целиком через Makefile.
 server:
-	LD_LIBRARY_PATH="$(CUDA_LIBS):$${LD_LIBRARY_PATH}" DEVICE="$(DEVICE)" COMPUTE_TYPE="$(COMPUTE_TYPE)" uv run uvicorn server:app --host 0.0.0.0 --port $(PORT)
+	LD_LIBRARY_PATH="$(CUDA_LIBS):$${LD_LIBRARY_PATH}" DEVICE="$(DEVICE)" COMPUTE_TYPE="$(COMPUTE_TYPE)" uv run uvicorn call_summary.server:app --host 0.0.0.0 --port $(PORT)
 # Явные шорткаты — чтобы не вспоминать нужные флаги руками
 server-cpu:
 	$(MAKE) server DEVICE=cpu COMPUTE_TYPE=int8
 
 server-gpu:
 	$(MAKE) server DEVICE=cuda COMPUTE_TYPE=float16
+
+COMPOSE ?= docker compose
+.PHONY: up migrate storage-init bootstrap logs down destroy-volumes test-infra
+up:
+	$(COMPOSE) up -d --build
+migrate:
+	$(COMPOSE) run --rm migrate
+storage-init:
+	$(COMPOSE) run --rm storage-init
+bootstrap:
+	$(COMPOSE) run --rm bootstrap
+logs:
+	$(COMPOSE) logs -f --tail=100
+down:
+	$(COMPOSE) down
+destroy-volumes:
+	$(COMPOSE) down --volumes
+test-infra:
+	uv run pytest tests -q

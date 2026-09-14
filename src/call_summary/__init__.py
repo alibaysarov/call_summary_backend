@@ -1,19 +1,13 @@
-from .voice import convert_ogg_to_wav
-from .voice_local import transcribe_and_diarize_ogg_local
-
-# qwen2.5:3b-instruct
-# gemma3 270m
-'''
-graph rag
-Да, поможет — но не обязательно нужна отдельная графовая БД (Neo4j и т.п.). Ключевая идея графового подхода — «кто-кому-когда» — можно получить дешевле, просто расширив схему в том же pgvector.
-
-Почему это реально помогает именно qwen2.5:3b
-
-Чистый vector search ищет по смысловой похожести текста, но не знает про роли и время — он может выдёрнуть фразу Ивана из совсем другого созвона или перепутать, кто кому что сказал, если несколько людей обсуждали похожую тему. Маленькой модели (3B) потом приходится самой распутывать, кто есть кто в этом обрывке — а с этим она справляется плохо, реасонинг слабый.
-
-Если же вы заранее прогоняете диаризацию (Whisper это делает или отдельно pyannote) и сохраняете в pgvector не только эмбеддинг, а ещё колонки speaker, addressee, call_id, timestamp — вы получаете «графовые» связи прямо в реляционной таблице. Тогда поиск на вопрос «что хотел Иван» превращается в:
-
-'''
+"""Call processing package. Legacy audio exports are loaded only when requested."""
 
 
+def __getattr__(name):
+    if name == "convert_ogg_to_wav":
+        from .voice import convert_ogg_to_wav
 
+        return convert_ogg_to_wav
+    if name == "transcribe_and_diarize_ogg_local":
+        from .voice_local import transcribe_and_diarize_ogg_local
+
+        return transcribe_and_diarize_ogg_local
+    raise AttributeError(name)

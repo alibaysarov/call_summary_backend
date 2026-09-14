@@ -1,0 +1,103 @@
+x-app-env: &app-env
+  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+  AUDIO_STORAGE_BACKEND: ${AUDIO_STORAGE_BACKEND:-s3}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-http://minio:9000}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_BUCKET: ${S3_BUCKET:-call-audio}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY}
+  S3_ADDRESSING_STYLE: ${S3_ADDRESSING_STYLE:-path}
+  AUDIO_TEMP_DIR: ${AUDIO_TEMP_DIR:-/tmp/call-summary}
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-5}
+  DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-2}
+  LOCAL_WORKSPACE_ID: ${LOCAL_WORKSPACE_ID:-00000000-0000-4000-8000-000000000001}
+  MAX_AUDIO_BYTES: ${MAX_AUDIO_BYTES:-104857600}
+  WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
+  WORKER_MAX_ATTEMPTS: ${WORKER_MAX_ATTEMPTS:-3}
+  WORKER_LEASE_SECONDS: ${WORKER_LEASE_SECONDS:-120}
+  TRANSCRIBER_PROVIDER: ${TRANSCRIBER_PROVIDER:-deepgram}
+  DIARIZER_PROVIDER: ${DIARIZER_PROVIDER:-deepgram}
+  DEEPGRAM_TOKEN: ${DEEPGRAM_TOKEN:-}
+  LLM_PROVIDER: ${LLM_PROVIDER:-unconfigured}
+  LLM_API_KEY: ${LLM_API_KEY:-}
+x-app: &app
+  pull_policy: never
+  image: call-summary-local:spec01
+  init: true
+  environment: *app-env
+services:
+  db:
+    image: postgres:17.6-bookworm@sha256:f3bd19c606e442c3d7bdfa8002e03fe260a1023351e0ea4598032022b68dd6e3
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-call_summary}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Set DB_APP_PASSWORD}
+      DB_MIGRATION_PASSWORD: ${DB_MIGRATION_PASSWORD:?Set DB_MIGRATION_PASSWORD}
+    ports: ["127.0.0.1:${DB_PORT:-5432}:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/10-app.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+    ports: ["127.0.0.1:${S3_PORT:-9000}:9000", "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"]
+    volumes: ["minio_data:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  storage-init:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    entrypoint: ["/bin/sh", "/init-minio.sh"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD}
+      S3_BUCKET: ${S3_BUCKET:-call-audio}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?Set S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?Set S3_SECRET_ACCESS_KEY}
+    volumes: ["./docker/init-minio.sh:/init-minio.sh:ro"]
+    depends_on:
+      minio: {condition: service_healthy}
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      MIGRATION_DATABASE_URL: ${MIGRATION_DATABASE_URL:?Set MIGRATION_DATABASE_URL}
+    depends_on:
+      db: {condition: service_healthy}
+  bootstrap:
+    <<: *app
+    command: ["python", "-m", "call_summary.db.bootstrap"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  api:
+    <<: *app
+    build: .
+    ports: ["127.0.0.1:${API_PORT:-8010}:8010"]
+    depends_on:
+      bootstrap: {condition: service_completed_successfully}
+      storage-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8010/ready/read', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 10
+  worker:
+    <<: *app
+    command: ["python", "-m", "call_summary.worker"]
+    depends_on:
+      bootstrap: {condition: service_completed_successfully}
+      storage-init: {condition: service_completed_successfully}
+volumes:
+  postgres_data:
+  minio_data:

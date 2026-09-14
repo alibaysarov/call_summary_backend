@@ -27,7 +27,7 @@ import tarfile
 import tempfile
 import urllib.request
 from call_summary.enums.provider import Provider 
-from decorators import timeit
+from call_summary.timing import timeit
 from call_summary.asr import Diarizer, Transcriber
 from call_summary.settings import (
     DEEPGRAM_API_KEY,

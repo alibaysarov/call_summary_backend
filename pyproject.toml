@@ -9,17 +9,13 @@ authors = [
 requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.20.0",
+    "sqlalchemy>=2.0.43,<2.1",
+    "psycopg[binary]>=3.3,<4",
+    "boto3>=1.40,<2",
+    "pydantic-settings>=2.10,<3",
     "faster-whisper>=1.2.1",
-    "langchain>=1.4.0",
-    "matplotlib>=3.11.2",
-    "nvidia-cublas-cu12>=12.9.0.13",
-    "nvidia-cudnn-cu12>=9.19.0.56",
-    "pandas>=3.0.5",
-    "pyannote-audio>=4.0.7",
     "psutil>=7.0.0",
     "python-dotenv>=1.1.0",
-    "torch>=2.14.0",
-    "torchaudio>=2.11.0",
     "sherpa-onnx>=1.13.8",
     "soundfile>=0.14.0",
     "numpy>=2.5.3",
@@ -35,3 +31,20 @@ call-summary = "call_summary.main:main"
 [build-system]
 requires = ["uv_build>=0.12.6,<0.13.0"]
 build-backend = "uv_build"
+
+[project.optional-dependencies]
+gpu = [
+    "nvidia-cublas-cu12>=12.9.0.13",
+    "nvidia-cudnn-cu12>=9.19.0.56",
+]
+experimental = [
+    "langchain>=1.4.0",
+    "matplotlib>=3.11.2",
+    "pandas>=3.0.5",
+    "pyannote-audio>=4.0.7",
+    "torch>=2.14.0",
+    "torchaudio>=2.11.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.28"]

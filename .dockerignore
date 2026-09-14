@@ -1,0 +1,13 @@
+.git
+.venv
+.env
+.env.*
+!.env.example
+files
+**/__pycache__
+**/*.pyc
+src/call_summary/models
+backups
+postgres_data
+minio_data
+.pytest_cache

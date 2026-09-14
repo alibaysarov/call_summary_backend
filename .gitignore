@@ -13,3 +13,16 @@ wheels/
 files/*
 # Но оставить .gitkeep, чтобы папка не была пустой
 !files/.gitkeep
+.env.*
+!.env.example
+*.ogg
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.mp4
+*.webm
+postgres_data/
+minio_data/
+backups/
+.pytest_cache/

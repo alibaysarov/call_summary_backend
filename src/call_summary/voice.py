@@ -25,7 +25,7 @@ import tempfile
 
 from faster_whisper import WhisperModel
 from pyannote.audio import Pipeline
-from decorators import timeit
+from call_summary.timing import timeit
 
 def convert_ogg_to_wav(ogg_path: str) -> str:
     """Конвертирует .ogg в .wav 16kHz mono (нужно и whisper, и pyannote)."""

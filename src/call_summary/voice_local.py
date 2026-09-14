@@ -30,7 +30,7 @@ import numpy as np
 import sherpa_onnx
 import soundfile as sf
 from faster_whisper import WhisperModel
-from decorators import timeit
+from call_summary.timing import timeit
 from call_summary.settings import (
     EMBEDDING_MODEL,
     EMBEDDING_URL,
