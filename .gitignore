@@ -1,0 +1,15 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.env
+# Игнорировать всё внутри files/
+files/*
+# Но оставить .gitkeep, чтобы папка не была пустой
+!files/.gitkeep

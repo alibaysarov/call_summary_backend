@@ -1,0 +1,37 @@
+[project]
+name = "call-summary"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ali_baysarov", email = "alibajsarov353@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "alembic>=1.20.0",
+    "faster-whisper>=1.2.1",
+    "langchain>=1.4.0",
+    "matplotlib>=3.11.2",
+    "nvidia-cublas-cu12>=12.9.0.13",
+    "nvidia-cudnn-cu12>=9.19.0.56",
+    "pandas>=3.0.5",
+    "pyannote-audio>=4.0.7",
+    "psutil>=7.0.0",
+    "python-dotenv>=1.1.0",
+    "torch>=2.14.0",
+    "torchaudio>=2.11.0",
+    "sherpa-onnx>=1.13.8",
+    "soundfile>=0.14.0",
+    "numpy>=2.5.3",
+    "fastapi>=0.141.1",
+    "uvicorn>=0.52.4",
+    "python-multipart>=0.0.32",
+    "deepgram-sdk==4.8.1",
+]
+
+[project.scripts]
+call-summary = "call_summary.main:main"
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
